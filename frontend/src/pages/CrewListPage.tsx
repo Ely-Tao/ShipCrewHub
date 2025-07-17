@@ -14,6 +14,10 @@ import {
   Row,
   Col,
   Dropdown,
+  Collapse,
+  InputNumber,
+  Divider,
+  Statistic,
   type MenuProps,
 } from 'antd';
 import {
@@ -23,6 +27,13 @@ import {
   DeleteOutlined,
   EyeOutlined,
   MoreOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  CalendarOutlined,
+  UserDeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { type CrewMember, type PersonStatus, type Ship } from '../types';
@@ -34,6 +45,7 @@ const { Title } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Panel } = Collapse;
 
 const CrewListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -49,7 +61,19 @@ const CrewListPage: React.FC = () => {
     status: '',
     shipId: '',
     dateRange: null as [dayjs.Dayjs, dayjs.Dayjs] | null,
+    // 高级搜索字段
+    gender: '',
+    department: '',
+    maritalStatus: '',
+    education: '',
+    salaryGrade: '',
+    phoneNumber: '',
+    hometown: '',
+    ageRange: null as [number, number] | null,
   });
+
+  // 高级搜索面板展开状态
+  const [advancedSearchVisible, setAdvancedSearchVisible] = useState(false);
 
   useEffect(() => {
     loadCrewList();
@@ -94,7 +118,7 @@ const CrewListPage: React.FC = () => {
   const applyFilters = () => {
     let filtered = [...crewList];
 
-    // 搜索过滤
+    // 基础搜索过滤（姓名、身份证号）
     if (filters.search) {
       filtered = filtered.filter(crew => 
         crew.name.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -121,6 +145,55 @@ const CrewListPage: React.FC = () => {
       });
     }
 
+    // 高级搜索过滤
+    // 性别过滤
+    if (filters.gender) {
+      filtered = filtered.filter(crew => crew.gender === filters.gender);
+    }
+
+    // 部门过滤
+    if (filters.department) {
+      filtered = filtered.filter(crew => crew.department === filters.department);
+    }
+
+    // 婚姻状况过滤
+    if (filters.maritalStatus) {
+      filtered = filtered.filter(crew => crew.marital_status === filters.maritalStatus);
+    }
+
+    // 教育程度过滤
+    if (filters.education) {
+      filtered = filtered.filter(crew => crew.education === filters.education);
+    }
+
+    // 薪资等级过滤
+    if (filters.salaryGrade) {
+      filtered = filtered.filter(crew => crew.salary_grade === filters.salaryGrade);
+    }
+
+    // 手机号码过滤
+    if (filters.phoneNumber) {
+      filtered = filtered.filter(crew => 
+        crew.phone.includes(filters.phoneNumber)
+      );
+    }
+
+    // 籍贯过滤
+    if (filters.hometown) {
+      filtered = filtered.filter(crew => 
+        crew.hometown.toLowerCase().includes(filters.hometown.toLowerCase())
+      );
+    }
+
+    // 年龄范围过滤
+    if (filters.ageRange) {
+      const [minAge, maxAge] = filters.ageRange;
+      filtered = filtered.filter(crew => {
+        const age = dayjs().diff(dayjs(crew.birth_date), 'year');
+        return age >= minAge && age <= maxAge;
+      });
+    }
+
     setFilteredList(filtered);
   };
 
@@ -138,6 +211,57 @@ const CrewListPage: React.FC = () => {
 
   const handleDateRangeChange = (dates: any) => {
     setFilters(prev => ({ ...prev, dateRange: dates }));
+  };
+
+  // 高级搜索处理函数
+  const handleGenderChange = (value: string) => {
+    setFilters(prev => ({ ...prev, gender: value }));
+  };
+
+  const handleDepartmentChange = (value: string) => {
+    setFilters(prev => ({ ...prev, department: value }));
+  };
+
+  const handleMaritalStatusChange = (value: string) => {
+    setFilters(prev => ({ ...prev, maritalStatus: value }));
+  };
+
+  const handleEducationChange = (value: string) => {
+    setFilters(prev => ({ ...prev, education: value }));
+  };
+
+  const handleSalaryGradeChange = (value: string) => {
+    setFilters(prev => ({ ...prev, salaryGrade: value }));
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    setFilters(prev => ({ ...prev, phoneNumber: value }));
+  };
+
+  const handleHometownChange = (value: string) => {
+    setFilters(prev => ({ ...prev, hometown: value }));
+  };
+
+  const handleAgeRangeChange = (values: [number, number] | null) => {
+    setFilters(prev => ({ ...prev, ageRange: values }));
+  };
+
+  // 重置搜索条件
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      shipId: '',
+      dateRange: null,
+      gender: '',
+      department: '',
+      maritalStatus: '',
+      education: '',
+      salaryGrade: '',
+      phoneNumber: '',
+      hometown: '',
+      ageRange: null,
+    });
   };
 
   const handleDelete = async (crewId: string) => {
@@ -238,12 +362,18 @@ const CrewListPage: React.FC = () => {
       key: 'name',
       width: 100,
       fixed: 'left' as const,
+      sorter: (a: CrewMember, b: CrewMember) => a.name.localeCompare(b.name),
     },
     {
       title: '性别',
       dataIndex: 'gender',
       key: 'gender',
       width: 80,
+      filters: [
+        { text: '男', value: '男' },
+        { text: '女', value: '女' },
+      ],
+      onFilter: (value: any, record: CrewMember) => record.gender === value,
       render: (gender: string) => gender || '-',
     },
     {
@@ -251,6 +381,11 @@ const CrewListPage: React.FC = () => {
       dataIndex: 'birth_date',
       key: 'age',
       width: 80,
+      sorter: (a: CrewMember, b: CrewMember) => {
+        const ageA = a.birth_date ? dayjs().diff(dayjs(a.birth_date), 'year') : 0;
+        const ageB = b.birth_date ? dayjs().diff(dayjs(b.birth_date), 'year') : 0;
+        return ageA - ageB;
+      },
       render: (birthDate: string) => {
         if (!birthDate) return '-';
         return dayjs().diff(dayjs(birthDate), 'year');
@@ -261,12 +396,21 @@ const CrewListPage: React.FC = () => {
       dataIndex: 'department',
       key: 'department',
       width: 120,
+      filters: [
+        { text: '甲板部', value: '甲板部' },
+        { text: '机舱部', value: '机舱部' },
+        { text: '餐饮部', value: '餐饮部' },
+        { text: '综合部', value: '综合部' },
+      ],
+      onFilter: (value: any, record: CrewMember) => record.department === value,
     },
     {
       title: '当前船舶',
       dataIndex: 'ship_id',
       key: 'ship_id',
       width: 120,
+      filters: ships.map(ship => ({ text: ship.name, value: ship.id })),
+      onFilter: (value: any, record: CrewMember) => record.ship_id === value,
       render: (shipId: number) => {
         const ship = ships.find(s => s.id === shipId);
         return ship ? ship.name : '-';
@@ -277,6 +421,12 @@ const CrewListPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
+      filters: [
+        { text: '在职', value: 'active' },
+        { text: '离职', value: 'inactive' },
+        { text: '休假', value: 'on_leave' },
+      ],
+      onFilter: (value: any, record: CrewMember) => record.status === value,
       render: (status: PersonStatus) => (
         <Tag color={getStatusColor(status)}>
           {getStatusText(status)}
@@ -288,6 +438,11 @@ const CrewListPage: React.FC = () => {
       dataIndex: 'join_date',
       key: 'join_date',
       width: 120,
+      sorter: (a: CrewMember, b: CrewMember) => {
+        if (!a.join_date) return 1;
+        if (!b.join_date) return -1;
+        return dayjs(a.join_date).valueOf() - dayjs(b.join_date).valueOf();
+      },
       render: (date: string) => date ? dayjs(date).format('YYYY-MM-DD') : '-',
     },
     {
@@ -342,8 +497,9 @@ const CrewListPage: React.FC = () => {
           </Row>
         </div>
 
+        {/* 基础搜索栏 */}
         <div style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
+          <Row gutter={16} align="middle">
             <Col span={8}>
               <Search
                 placeholder="搜索姓名、身份证号"
@@ -357,6 +513,7 @@ const CrewListPage: React.FC = () => {
                 allowClear
                 style={{ width: '100%' }}
                 onChange={handleStatusChange}
+                value={filters.status || undefined}
               >
                 <Option value="active">在职</Option>
                 <Option value="inactive">离职</Option>
@@ -369,6 +526,7 @@ const CrewListPage: React.FC = () => {
                 allowClear
                 style={{ width: '100%' }}
                 onChange={handleShipChange}
+                value={filters.shipId || undefined}
               >
                 {ships.map(ship => (
                   <Option key={ship.id} value={ship.id}>
@@ -377,15 +535,178 @@ const CrewListPage: React.FC = () => {
                 ))}
               </Select>
             </Col>
-            <Col span={8}>
+            <Col span={6}>
               <RangePicker
                 placeholder={['开始日期', '结束日期']}
                 style={{ width: '100%' }}
                 onChange={handleDateRangeChange}
+                value={filters.dateRange}
               />
+            </Col>
+            <Col span={2}>
+              <Space>
+                <Button 
+                  icon={<FilterOutlined />}
+                  onClick={() => setAdvancedSearchVisible(!advancedSearchVisible)}
+                >
+                  高级
+                </Button>
+                <Button 
+                  icon={<ReloadOutlined />}
+                  onClick={handleResetFilters}
+                  title="重置搜索条件"
+                />
+              </Space>
             </Col>
           </Row>
         </div>
+
+        {/* 高级搜索面板 */}
+        <Collapse 
+          activeKey={advancedSearchVisible ? ['advanced'] : []}
+          onChange={() => setAdvancedSearchVisible(!advancedSearchVisible)}
+          style={{ marginBottom: 16 }}
+        >
+          <Panel header="高级搜索" key="advanced">
+            <Row gutter={[16, 16]}>
+              <Col span={6}>
+                <Select
+                  placeholder="性别"
+                  allowClear
+                  style={{ width: '100%' }}
+                  onChange={handleGenderChange}
+                  value={filters.gender || undefined}
+                >
+                  <Option value="男">男</Option>
+                  <Option value="女">女</Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Select
+                  placeholder="部门"
+                  allowClear
+                  style={{ width: '100%' }}
+                  onChange={handleDepartmentChange}
+                  value={filters.department || undefined}
+                >
+                  <Option value="甲板部">甲板部</Option>
+                  <Option value="机舱部">机舱部</Option>
+                  <Option value="餐饮部">餐饮部</Option>
+                  <Option value="综合部">综合部</Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Select
+                  placeholder="婚姻状况"
+                  allowClear
+                  style={{ width: '100%' }}
+                  onChange={handleMaritalStatusChange}
+                  value={filters.maritalStatus || undefined}
+                >
+                  <Option value="未婚">未婚</Option>
+                  <Option value="已婚">已婚</Option>
+                  <Option value="离异">离异</Option>
+                  <Option value="丧偶">丧偶</Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Select
+                  placeholder="教育程度"
+                  allowClear
+                  style={{ width: '100%' }}
+                  onChange={handleEducationChange}
+                  value={filters.education || undefined}
+                >
+                  <Option value="小学">小学</Option>
+                  <Option value="初中">初中</Option>
+                  <Option value="高中">高中</Option>
+                  <Option value="中专">中专</Option>
+                  <Option value="大专">大专</Option>
+                  <Option value="本科">本科</Option>
+                  <Option value="硕士">硕士</Option>
+                  <Option value="博士">博士</Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Select
+                  placeholder="薪资等级"
+                  allowClear
+                  style={{ width: '100%' }}
+                  onChange={handleSalaryGradeChange}
+                  value={filters.salaryGrade || undefined}
+                >
+                  <Option value="1">一级船员</Option>
+                  <Option value="2">二级船员</Option>
+                  <Option value="3">三级船员</Option>
+                  <Option value="4">四级船员</Option>
+                  <Option value="5">五级船员</Option>
+                </Select>
+              </Col>
+              <Col span={6}>
+                <Input
+                  placeholder="手机号码"
+                  onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                  value={filters.phoneNumber}
+                  allowClear
+                />
+              </Col>
+              <Col span={6}>
+                <Input
+                  placeholder="籍贯"
+                  onChange={(e) => handleHometownChange(e.target.value)}
+                  value={filters.hometown}
+                  allowClear
+                />
+              </Col>
+              <Col span={6}>
+                <Input.Group compact>
+                  <InputNumber
+                    placeholder="最小年龄"
+                    min={18}
+                    max={65}
+                    style={{ width: '48%' }}
+                    onChange={(value) => {
+                      const min = value || 18;
+                      const max = filters.ageRange?.[1] || 65;
+                      handleAgeRangeChange([min, max]);
+                    }}
+                    value={filters.ageRange?.[0]}
+                  />
+                  <span style={{ width: '4%', textAlign: 'center', display: 'inline-block' }}>-</span>
+                  <InputNumber
+                    placeholder="最大年龄"
+                    min={18}
+                    max={65}
+                    style={{ width: '48%' }}
+                    onChange={(value) => {
+                      const min = filters.ageRange?.[0] || 18;
+                      const max = value || 65;
+                      handleAgeRangeChange([min, max]);
+                    }}
+                    value={filters.ageRange?.[1]}
+                  />
+                </Input.Group>
+              </Col>
+            </Row>
+            <Divider />
+            <Row justify="end">
+              <Col>
+                <Space>
+                  <Button onClick={handleResetFilters}>
+                    重置
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<SearchOutlined />}
+                    onClick={() => setAdvancedSearchVisible(false)}
+                  >
+                    搜索
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Panel>
+        </Collapse>
 
         {selectedRowKeys.length > 0 && (
           <div style={{ marginBottom: 16 }}>
@@ -402,6 +723,52 @@ const CrewListPage: React.FC = () => {
             </Space>
           </div>
         )}
+
+        {/* 统计信息 */}
+        <div style={{ marginBottom: 16 }}>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic 
+                  title="总人数" 
+                  value={filteredList.length} 
+                  prefix={<TeamOutlined />} 
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic 
+                  title="在职人员" 
+                  value={filteredList.filter(crew => crew.status === 'active').length} 
+                  prefix={<UserAddOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic 
+                  title="休假人员" 
+                  value={filteredList.filter(crew => crew.status === 'on_leave').length} 
+                  prefix={<CalendarOutlined />}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic 
+                  title="已离职" 
+                  value={filteredList.filter(crew => crew.status === 'inactive').length} 
+                  prefix={<UserDeleteOutlined />}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </div>
 
         <Table
           columns={columns}
