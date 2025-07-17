@@ -163,7 +163,9 @@ export class CrewController {
 
         const departmentMap: { [key: string]: string } = {
           'deck': '甲板部',
-          'engine': '机舱部'
+          'engine': '机舱部',
+          'catering': '甲板部',  // 将餐饮部映射到甲板部
+          'general': '甲板部'    // 将综合部映射到甲板部
         };
 
         // 转换值
@@ -282,6 +284,57 @@ export class CrewController {
           }
         }
 
+        // 值转换映射（与创建时相同）
+        const genderMap: { [key: string]: string } = {
+          'male': '男',
+          'female': '女'
+        };
+
+        const maritalStatusMap: { [key: string]: string } = {
+          'single': '未婚',
+          'married': '已婚',
+          'divorced': '离异',
+          'widowed': '丧偶'
+        };
+
+        const educationMap: { [key: string]: string } = {
+          'primary': '小学',
+          'junior': '初中',
+          'senior': '高中',
+          'vocational': '中专',
+          'college': '大专',
+          'bachelor': '本科',
+          'master': '硕士',
+          'doctor': '博士'
+        };
+
+        const departmentMap: { [key: string]: string } = {
+          'deck': '甲板部',
+          'engine': '机舱部',
+          'catering': '甲板部',  // 将餐饮部映射到甲板部
+          'general': '甲板部'    // 将综合部映射到甲板部
+        };
+
+        // 转换更新数据
+        const convertedUpdateData = { ...updateData };
+        if (updateData.gender) {
+          convertedUpdateData.gender = genderMap[updateData.gender] || updateData.gender;
+        }
+        if (updateData.marital_status) {
+          convertedUpdateData.marital_status = maritalStatusMap[updateData.marital_status] || updateData.marital_status;
+        }
+        if (updateData.education) {
+          convertedUpdateData.education = educationMap[updateData.education] || updateData.education;
+        }
+        if (updateData.department) {
+          convertedUpdateData.department = departmentMap[updateData.department] || updateData.department;
+        }
+        if (updateData.join_date && typeof updateData.join_date === 'string') {
+          convertedUpdateData.join_date = new Date(updateData.join_date);
+        }
+
+        console.log('Updating crew with converted data:', JSON.stringify(convertedUpdateData, null, 2));
+
         // 构建更新SQL
         const allowedFields = [
           'name', 'gender', 'birth_date', 'id_card', 'marital_status', 
@@ -294,9 +347,9 @@ export class CrewController {
         const params: any[] = [];
 
         for (const field of allowedFields) {
-          if (updateData[field] !== undefined) {
+          if (convertedUpdateData[field] !== undefined) {
             updates.push(`${field} = ?`);
-            params.push(updateData[field]);
+            params.push(convertedUpdateData[field]);
           }
         }
 

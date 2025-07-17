@@ -352,9 +352,7 @@ const CrewFormPage: React.FC = () => {
               >
                 <Select placeholder="请选择部门">
                   <Option value="deck">甲板部</Option>
-                  <Option value="engine">轮机部</Option>
-                  <Option value="catering">餐饮部</Option>
-                  <Option value="general">综合部</Option>
+                  <Option value="engine">机舱部</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -365,9 +363,15 @@ const CrewFormPage: React.FC = () => {
               <Form.Item
                 label="薪资等级"
                 name="salary_grade"
-                rules={[{ required: true, message: '请输入薪资等级' }]}
+                rules={[{ required: true, message: '请选择薪资等级' }]}
               >
-                <Input placeholder="请输入薪资等级" />
+                <Select placeholder="请选择薪资等级">
+                  <Option value="1">一级船员 (8K-12K)</Option>
+                  <Option value="2">二级船员 (12K-18K)</Option>
+                  <Option value="3">三级船员 (18K-25K)</Option>
+                  <Option value="4">四级船员 (25K-35K)</Option>
+                  <Option value="5">五级船员 (35K-50K)</Option>
+                </Select>
               </Form.Item>
             </Col>
             <Col span={8}>
