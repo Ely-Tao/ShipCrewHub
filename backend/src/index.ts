@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import compression from 'compression';
 import dotenv from 'dotenv';
+import routes from './routes';
+import { testConnection } from './config/database.pool';
 
 // 加载环境变量
 dotenv.config();
@@ -11,64 +13,78 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 中间件
-app.use(helmet());
-app.use(cors());
-app.use(morgan('combined'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(helmet()); // 安全中间件
+app.use(cors()); // CORS
+app.use(compression()); // 压缩响应
+app.use(express.json({ limit: '10mb' })); // 解析JSON请求体
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // 解析URL编码请求体
 
-// 基础路由
-app.get('/', (req, res) => {
-  res.json({
-    message: 'ShipCrewHub API Server',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+// 请求日志中间件
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
 });
 
-// 健康检查端点
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    version: process.version
-  });
-});
+// 路由
+app.use(routes);
 
-// API 路由
-app.use('/api', (req, res) => {
-  res.json({
-    message: 'API routes will be implemented here',
-    path: req.path,
-    method: req.method
-  });
+// 404处理
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
 // 错误处理中间件
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
-});
-
-// 404 处理
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Cannot ${req.method} ${req.path}`
-  });
+app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', error);
+  
+  // 开发环境返回详细错误信息
+  if (process.env.NODE_ENV === 'development') {
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message,
+      stack: error.stack
+    });
+  } else {
+    // 生产环境返回通用错误信息
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-  console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+const startServer = async () => {
+  try {
+    // 测试数据库连接
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.error('Failed to connect to database');
+      process.exit(1);
+    }
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
+      console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`💾 Database: ${process.env.DB_NAME || 'shipcrewdb'}`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
 });
 
 export default app;
