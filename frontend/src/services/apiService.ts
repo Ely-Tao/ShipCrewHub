@@ -53,17 +53,20 @@ class ApiService {
     config?: any
   ): Promise<ApiResponse<T>> {
     try {
+      console.log(`🚀 API Request: ${method} ${url}`, data);
       const response = await this.api.request({
         method,
         url,
         data,
         ...config,
       });
+      console.log(`✅ API Response: ${method} ${url}`, response.data);
       return {
         success: true,
         data: response.data,
       };
     } catch (error: any) {
+      console.error(`❌ API Error: ${method} ${url}`, error);
       const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
       return {
         success: false,

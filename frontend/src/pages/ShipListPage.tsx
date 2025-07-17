@@ -59,10 +59,13 @@ const ShipListPage: React.FC = () => {
     try {
       const response = await shipService.getShipList();
       if (response && response.data) {
-        setShipList(response.data.data);
+        // 后端返回的结构是 { ships: [], pagination: {} }
+        setShipList(response.data.ships || []);
       }
     } catch (error) {
       message.error('获取船舶列表失败');
+      // 确保在出错时 shipList 仍然是一个数组
+      setShipList([]);
     } finally {
       setLoading(false);
     }

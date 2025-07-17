@@ -17,6 +17,28 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// 船舶列表响应
+export interface ShipListResponse {
+  ships: Ship[];
+  pagination: {
+    current: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+  };
+}
+
+// 船员列表响应
+export interface CrewListResponse {
+  crews: CrewMember[];
+  pagination: {
+    current: number;
+    pageSize: number;
+    total: number;
+    pages: number;
+  };
+}
+
 // 用户相关类型
 export interface User {
   id: number;

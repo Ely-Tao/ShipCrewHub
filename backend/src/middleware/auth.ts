@@ -22,14 +22,14 @@ export const authenticateToken = async (
     }
 
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
-    const decoded = jwt.verify(token, jwtSecret) as { userId: number };
+    const decoded = jwt.verify(token, jwtSecret) as { id: number };
 
     // 从数据库获取用户信息
     const connection = await pool.getConnection();
     try {
       const [rows] = await connection.execute<any[]>(
         'SELECT * FROM users WHERE id = ? AND status = "active"',
-        [decoded.userId]
+        [decoded.id]
       );
 
       if (rows.length === 0) {

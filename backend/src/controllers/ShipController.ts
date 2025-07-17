@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export class ShipController {
   // 获取船舶列表
-  async getShipList(req: AuthRequest, res: Response): Promise<void> {
+  async getShipList(req: Request, res: Response) {
     try {
       const { 
         page = 1, 
@@ -15,62 +15,65 @@ export class ShipController {
         status 
       } = req.query;
       
-      const offset = (Number(page) - 1) * Number(limit);
+      // 确保 page 和 limit 是正确的数字
+      const pageNum = Math.max(1, parseInt(page as string) || 1);
+      const limitNum = Math.max(1, Math.min(100, parseInt(limit as string) || 10));
+      const offsetNum = (pageNum - 1) * limitNum;
 
       let whereClause = '1=1';
-      const params: any[] = [];
+      const filterParams: any[] = [];
 
       if (name) {
         whereClause += ' AND name LIKE ?';
-        params.push(`%${name}%`);
+        filterParams.push(`%${name}%`);
       }
 
       if (ship_number) {
         whereClause += ' AND ship_number LIKE ?';
-        params.push(`%${ship_number}%`);
+        filterParams.push(`%${ship_number}%`);
       }
 
       if (type) {
-        whereClause += ' AND type = ?';
-        params.push(type);
+        whereClause += ' AND ship_type = ?';
+        filterParams.push(type);
       }
 
       if (status) {
         whereClause += ' AND status = ?';
-        params.push(status);
+        filterParams.push(status);
       }
 
       const connection = await pool.getConnection();
       try {
-        // 获取船舶列表及船员数量
-        const [ships] = await connection.execute<any[]>(
-          `SELECT 
+        // 暂时使用字符串插值来避免参数绑定问题
+        const listQuery = `SELECT 
             s.*,
             COUNT(ci.id) as crew_count
-           FROM ships s
+           FROM ship_info s
            LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
            WHERE ${whereClause}
            GROUP BY s.id
            ORDER BY s.created_at DESC 
-           LIMIT ? OFFSET ?`,
-          [...params, Number(limit), offset]
-        );
+           LIMIT ${limitNum} OFFSET ${offsetNum}`;
+        
+        console.log('Executing query:', listQuery);
+        console.log('With params:', filterParams);
+        
+        const [ships] = await connection.execute<any[]>(listQuery, filterParams);
 
-        // 获取总数
-        const [countResult] = await connection.execute<any[]>(
-          `SELECT COUNT(*) as total FROM ships WHERE ${whereClause}`,
-          params
-        );
+        // 获取总数 - 只传递过滤参数
+        const countQuery = `SELECT COUNT(*) as total FROM ship_info WHERE ${whereClause}`;
+        const [countResult] = await connection.execute<any[]>(countQuery, filterParams);
 
         const total = countResult[0].total;
 
         res.json({
           ships,
           pagination: {
-            current: Number(page),
-            pageSize: Number(limit),
+            current: pageNum,
+            pageSize: limitNum,
             total,
-            pages: Math.ceil(total / Number(limit))
+            pages: Math.ceil(total / limitNum)
           }
         });
       } finally {
@@ -94,7 +97,7 @@ export class ShipController {
           `SELECT 
             s.*,
             COUNT(ci.id) as crew_count
-           FROM ships s
+           FROM ship_info s
            LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
            WHERE s.id = ?
            GROUP BY s.id`,
@@ -146,7 +149,7 @@ export class ShipController {
       try {
         // 检查船舶编号是否已存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ships WHERE ship_number = ?',
+          'SELECT id FROM ship_info WHERE ship_number = ?',
           [shipData.ship_number]
         );
 
@@ -157,7 +160,7 @@ export class ShipController {
 
         // 插入船舶信息
         const [result] = await connection.execute<any>(
-          `INSERT INTO ships (
+          `INSERT INTO ship_info (
             name, ship_number, type, tonnage, build_year, 
             flag_country, classification_society, imo_number, 
             call_sign, max_crew, status, created_at
@@ -181,7 +184,7 @@ export class ShipController {
 
         // 获取新创建的船舶信息
         const [newShip] = await connection.execute<any[]>(
-          'SELECT * FROM ships WHERE id = ?',
+          'SELECT * FROM ship_info WHERE id = ?',
           [shipId]
         );
 
@@ -208,7 +211,7 @@ export class ShipController {
       try {
         // 检查船舶是否存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ships WHERE id = ?',
+          'SELECT id FROM ship_info WHERE id = ?',
           [shipId]
         );
 
@@ -220,7 +223,7 @@ export class ShipController {
         // 如果更新船舶编号，检查是否与其他船舶重复
         if (updateData.ship_number) {
           const [duplicateCheck] = await connection.execute<any[]>(
-            'SELECT id FROM ships WHERE ship_number = ? AND id != ?',
+            'SELECT id FROM ship_info WHERE ship_number = ? AND id != ?',
             [updateData.ship_number, shipId]
           );
 
@@ -257,13 +260,13 @@ export class ShipController {
 
         // 执行更新
         await connection.execute(
-          `UPDATE ships SET ${updates.join(', ')} WHERE id = ?`,
+          `UPDATE ship_info SET ${updates.join(', ')} WHERE id = ?`,
           params
         );
 
         // 获取更新后的船舶信息
         const [updatedShip] = await connection.execute<any[]>(
-          'SELECT * FROM ships WHERE id = ?',
+          'SELECT * FROM ship_info WHERE id = ?',
           [shipId]
         );
 
@@ -289,7 +292,7 @@ export class ShipController {
       try {
         // 检查船舶是否存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ships WHERE id = ?',
+          'SELECT id FROM ship_info WHERE id = ?',
           [shipId]
         );
 
@@ -313,7 +316,7 @@ export class ShipController {
 
         // 软删除：将状态设置为inactive
         await connection.execute(
-          'UPDATE ships SET status = "inactive", updated_at = NOW() WHERE id = ?',
+          'UPDATE ship_info SET status = "inactive", updated_at = NOW() WHERE id = ?',
           [shipId]
         );
 
@@ -334,18 +337,18 @@ export class ShipController {
       try {
         // 获取各种统计信息
         const [totalShips] = await connection.execute<any[]>(
-          'SELECT COUNT(*) as total FROM ships WHERE status = "active"'
+          'SELECT COUNT(*) as total FROM ship_info WHERE status = "active"'
         );
 
         const [shipsByType] = await connection.execute<any[]>(
-          'SELECT type, COUNT(*) as count FROM ships WHERE status = "active" GROUP BY type'
+          'SELECT ship_type as type, COUNT(*) as count FROM ship_info WHERE status = "active" GROUP BY ship_type'
         );
 
         const [crewStats] = await connection.execute<any[]>(
           `SELECT 
-            s.id, s.name, s.ship_number, s.max_crew,
+            s.id, s.name, s.ship_number, s.capacity as max_crew,
             COUNT(ci.id) as current_crew
-           FROM ships s
+           FROM ship_info s
            LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
            WHERE s.status = 'active'
            GROUP BY s.id

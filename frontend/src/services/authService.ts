@@ -7,7 +7,7 @@ class AuthService {
 
   // 登录
   async login(credentials: LoginRequest) {
-    const response = await apiService.post<LoginResponse>('/api/v1/users/login', credentials);
+    const response = await apiService.post<LoginResponse>('/api/v1/auth/login', credentials);
     
     if (response.success && response.data) {
       // 存储token和用户信息

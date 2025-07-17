@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录调试页面</title>
+</head>
+<body>
+    <h1>登录状态调试</h1>
+    <button onclick="checkLoginStatus()">检查登录状态</button>
+    <button onclick="clearStorage()">清除存储</button>
+    <div id="result"></div>
+
+    <script>
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h3>存储状态:</h3>
+                <p><strong>Token:</strong> ${token ? '已存储' : '未存储'}</p>
+                <p><strong>Token内容:</strong> ${token || '无'}</p>
+                <p><strong>User:</strong> ${user ? '已存储' : '未存储'}</p>
+                <p><strong>User内容:</strong> ${user || '无'}</p>
+            `;
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('存储已清除');
+        }
+        
+        // 页面加载时自动检查
+        window.onload = checkLoginStatus;
+    </script>
+</body>
+</html>

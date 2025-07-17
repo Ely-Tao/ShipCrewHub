@@ -42,10 +42,13 @@ const CrewFormPage: React.FC = () => {
     try {
       const response = await shipService.getShipList();
       if (response && response.data) {
-        setShips(response.data.data);
+        // 后端返回的结构是 { ships: [], pagination: {} }
+        setShips(response.data.ships || []);
       }
     } catch (error) {
       console.error('获取船舶列表失败', error);
+      // 确保在出错时 ships 仍然是一个数组
+      setShips([]);
     }
   };
 

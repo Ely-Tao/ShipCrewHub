@@ -16,62 +16,65 @@ export class CrewController {
         status 
       } = req.query;
       
-      const offset = (Number(page) - 1) * Number(limit);
+      // 确保 page 和 limit 是正确的数字
+      const pageNum = Math.max(1, parseInt(page as string) || 1);
+      const limitNum = Math.max(1, Math.min(100, parseInt(limit as string) || 10));
+      const offsetNum = (pageNum - 1) * limitNum;
 
       let whereClause = '1=1';
-      const params: any[] = [];
+      const filterParams: any[] = [];
 
       if (name) {
         whereClause += ' AND name LIKE ?';
-        params.push(`%${name}%`);
+        filterParams.push(`%${name}%`);
       }
 
       if (ship_id) {
         whereClause += ' AND ship_id = ?';
-        params.push(ship_id);
+        filterParams.push(ship_id);
       }
 
       if (department) {
         whereClause += ' AND department = ?';
-        params.push(department);
+        filterParams.push(department);
       }
 
       if (status) {
         whereClause += ' AND status = ?';
-        params.push(status);
+        filterParams.push(status);
       }
 
       const connection = await pool.getConnection();
       try {
-        // 获取船员列表
-        const [crews] = await connection.execute<any[]>(
-          `SELECT 
+        // 暂时使用字符串插值来避免参数绑定问题
+        const listQuery = `SELECT 
             ci.*, 
             s.name as ship_name,
             s.ship_number
            FROM crew_info ci
-           LEFT JOIN ships s ON ci.ship_id = s.id
+           LEFT JOIN ship_info s ON ci.ship_id = s.id
            WHERE ${whereClause}
            ORDER BY ci.created_at DESC 
-           LIMIT ? OFFSET ?`,
-          [...params, Number(limit), offset]
-        );
+           LIMIT ${limitNum} OFFSET ${offsetNum}`;
+        
+        console.log('Executing crew query:', listQuery);
+        console.log('With params:', filterParams);
+        
+        const [crews] = await connection.execute<any[]>(listQuery, filterParams);
 
-        // 获取总数
-        const [countResult] = await connection.execute<any[]>(
-          `SELECT COUNT(*) as total FROM crew_info WHERE ${whereClause}`,
-          params
-        );
+        // 获取总数 - 只传递过滤参数
+        const countQuery = `SELECT COUNT(*) as total FROM crew_info WHERE ${whereClause}`;
+        const [countResult] = await connection.execute<any[]>(countQuery, filterParams);
 
         const total = countResult[0].total;
 
         res.json({
           crews,
           pagination: {
-            current: Number(page),
-            pageSize: Number(limit),
+            current: pageNum,
+            pageSize: limitNum,
             total,
-            pages: Math.ceil(total / Number(limit))
+            pages: Math.ceil(total / limitNum)
           }
         });
       } finally {
@@ -96,7 +99,7 @@ export class CrewController {
             s.name as ship_name,
             s.ship_number
            FROM crew_info ci
-           LEFT JOIN ships s ON ci.ship_id = s.id
+           LEFT JOIN ship_info s ON ci.ship_id = s.id
            WHERE ci.id = ?`,
           [crewId]
         );
@@ -120,11 +123,13 @@ export class CrewController {
   async createCrew(req: AuthRequest, res: Response): Promise<void> {
     try {
       const crewData = req.body;
+      console.log('Creating crew with data:', JSON.stringify(crewData, null, 2));
 
       // 验证必填字段
       const requiredFields = ['name', 'gender', 'birth_date', 'id_card', 'phone', 'department'];
       for (const field of requiredFields) {
         if (!crewData[field]) {
+          console.log(`Missing required field: ${field}`);
           res.status(400).json({ error: `${field} is required` });
           return;
         }
@@ -132,16 +137,80 @@ export class CrewController {
 
       const connection = await pool.getConnection();
       try {
+        // 值转换映射
+        const genderMap: { [key: string]: string } = {
+          'male': '男',
+          'female': '女'
+        };
+
+        const maritalStatusMap: { [key: string]: string } = {
+          'single': '未婚',
+          'married': '已婚',
+          'divorced': '离异',
+          'widowed': '丧偶'
+        };
+
+        const educationMap: { [key: string]: string } = {
+          'primary': '小学',
+          'junior': '初中',
+          'senior': '高中',
+          'vocational': '中专',
+          'college': '大专',
+          'bachelor': '本科',
+          'master': '硕士',
+          'doctor': '博士'
+        };
+
+        const departmentMap: { [key: string]: string } = {
+          'deck': '甲板部',
+          'engine': '机舱部'
+        };
+
+        // 转换值
+        const convertedData = {
+          ...crewData,
+          gender: genderMap[crewData.gender] || crewData.gender,
+          marital_status: crewData.marital_status ? (maritalStatusMap[crewData.marital_status] || crewData.marital_status) : '未婚',
+          education: crewData.education ? (educationMap[crewData.education] || crewData.education) : null,
+          department: departmentMap[crewData.department] || crewData.department
+        };
+
+        console.log('Converted data:', JSON.stringify(convertedData, null, 2));
+
         // 检查身份证号是否已存在
         const [existingCrew] = await connection.execute<any[]>(
           'SELECT id FROM crew_info WHERE id_card = ?',
-          [crewData.id_card]
+          [convertedData.id_card]
         );
 
         if (existingCrew.length > 0) {
           res.status(409).json({ error: 'Crew member with this ID card already exists' });
           return;
         }
+
+        // 准备插入参数
+        const insertParams = [
+          convertedData.name,
+          convertedData.gender,
+          convertedData.birth_date,
+          convertedData.id_card,
+          convertedData.marital_status || '未婚',
+          convertedData.nationality || 'Chinese',
+          convertedData.hometown || '',  // 不能为 null
+          convertedData.phone,
+          convertedData.emergency_contact_name || '',  // 不能为 null
+          convertedData.emergency_contact_phone || '',  // 不能为 null
+          convertedData.education || '高中',  // 不能为 null，默认高中
+          convertedData.school || null,  // 可以为 null
+          convertedData.major || null,   // 可以为 null
+          convertedData.join_date ? new Date(convertedData.join_date) : new Date(),
+          convertedData.ship_id || null,  // 可以为 null
+          convertedData.department,
+          convertedData.salary_grade || '1',  // 不能为 null，默认等级1
+          convertedData.status || 'active'
+        ];
+
+        console.log('Insert parameters:', insertParams);
 
         // 插入船员信息
         const [result] = await connection.execute<any>(
@@ -151,26 +220,7 @@ export class CrewController {
             education, school, major, join_date, ship_id, department, 
             salary_grade, status, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [
-            crewData.name,
-            crewData.gender,
-            crewData.birth_date,
-            crewData.id_card,
-            crewData.marital_status || 'single',
-            crewData.nationality || 'Chinese',
-            crewData.hometown,
-            crewData.phone,
-            crewData.emergency_contact_name,
-            crewData.emergency_contact_phone,
-            crewData.education,
-            crewData.school,
-            crewData.major,
-            crewData.join_date || new Date(),
-            crewData.ship_id,
-            crewData.department,
-            crewData.salary_grade,
-            crewData.status || 'active'
-          ]
+          insertParams
         );
 
         const crewId = result.insertId;
@@ -182,7 +232,7 @@ export class CrewController {
             s.name as ship_name,
             s.ship_number
            FROM crew_info ci
-           LEFT JOIN ships s ON ci.ship_id = s.id
+           LEFT JOIN ship_info s ON ci.ship_id = s.id
            WHERE ci.id = ?`,
           [crewId]
         );
@@ -271,7 +321,7 @@ export class CrewController {
             s.name as ship_name,
             s.ship_number
            FROM crew_info ci
-           LEFT JOIN ships s ON ci.ship_id = s.id
+           LEFT JOIN ship_info s ON ci.ship_id = s.id
            WHERE ci.id = ?`,
           [crewId]
         );

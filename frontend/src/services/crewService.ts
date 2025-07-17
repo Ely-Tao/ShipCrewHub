@@ -1,5 +1,5 @@
 import apiService from './apiService';
-import type { CrewMember, PaginatedResponse, SearchParams, BulkOperation } from '../types';
+import type { CrewMember, CrewListResponse, SearchParams, BulkOperation } from '../types';
 
 class CrewService {
   // 获取船员列表
@@ -18,7 +18,7 @@ class CrewService {
     }
 
     const url = `/api/v1/crew${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return await apiService.get<PaginatedResponse<CrewMember>>(url);
+    return await apiService.get<CrewListResponse>(url);
   }
 
   // 获取单个船员信息

@@ -1,5 +1,5 @@
 import apiService from './apiService';
-import type { Ship, PaginatedResponse, SearchParams, StatsData } from '../types';
+import type { Ship, ShipListResponse, SearchParams, StatsData } from '../types';
 
 class ShipService {
   // 获取船舶列表
@@ -18,7 +18,7 @@ class ShipService {
     }
 
     const url = `/api/v1/ships${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return await apiService.get<PaginatedResponse<Ship>>(url);
+    return await apiService.get<ShipListResponse>(url);
   }
 
   // 获取单个船舶信息

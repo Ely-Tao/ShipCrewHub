@@ -13,16 +13,24 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async (values: LoginRequest) => {
     setLoading(true);
+    console.log('🔍 Login attempt:', values);
     try {
       const response = await authService.login(values);
+      console.log('📡 Login response:', response);
       
       if (response.success) {
+        console.log('✅ Login successful, checking auth status...');
+        console.log('🔑 Token stored:', authService.getToken());
+        console.log('👤 User stored:', authService.getUser());
+        console.log('🔒 Is authenticated:', authService.isAuthenticated());
+        
         message.success('登录成功！');
         navigate('/dashboard');
       } else {
         message.error(response.error || '登录失败');
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       message.error('登录失败，请重试');
     } finally {
       setLoading(false);

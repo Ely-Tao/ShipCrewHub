@@ -45,10 +45,13 @@ const LeaveFormPage: React.FC = () => {
     try {
       const response = await crewService.getCrewList();
       if (response && response.data) {
-        setCrewList(response.data.data);
+        // 后端返回的结构是 { crews: [], pagination: {} }
+        setCrewList(response.data.crews || []);
       }
     } catch (error) {
       console.error('获取船员列表失败', error);
+      // 确保在出错时 crewList 仍然是一个数组
+      setCrewList([]);
     }
   };
 
