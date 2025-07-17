@@ -135,11 +135,13 @@ export class ShipController {
   async createShip(req: AuthRequest, res: Response): Promise<void> {
     try {
       const shipData = req.body;
+      console.log('Creating ship with data:', JSON.stringify(shipData, null, 2));
 
       // 验证必填字段
-      const requiredFields = ['name', 'ship_number', 'type'];
+      const requiredFields = ['name', 'ship_number', 'ship_type'];
       for (const field of requiredFields) {
         if (!shipData[field]) {
+          console.log(`Missing required field: ${field}`);
           res.status(400).json({ error: `${field} is required` });
           return;
         }
@@ -158,26 +160,23 @@ export class ShipController {
           return;
         }
 
+        // 准备插入参数，匹配实际数据库表结构
+        const insertParams = [
+          shipData.name,
+          shipData.ship_number,
+          shipData.ship_type,
+          shipData.capacity || null,
+          shipData.status || 'active'
+        ];
+
+        console.log('Insert parameters:', insertParams);
+
         // 插入船舶信息
         const [result] = await connection.execute<any>(
           `INSERT INTO ship_info (
-            name, ship_number, type, tonnage, build_year, 
-            flag_country, classification_society, imo_number, 
-            call_sign, max_crew, status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [
-            shipData.name,
-            shipData.ship_number,
-            shipData.type,
-            shipData.tonnage,
-            shipData.build_year,
-            shipData.flag_country,
-            shipData.classification_society,
-            shipData.imo_number,
-            shipData.call_sign,
-            shipData.max_crew,
-            shipData.status || 'active'
-          ]
+            name, ship_number, ship_type, capacity, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, NOW())`,
+          insertParams
         );
 
         const shipId = result.insertId;
