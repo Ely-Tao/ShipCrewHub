@@ -6,9 +6,17 @@ import LoginPage from './pages/LoginPage';
 import DashboardLayout from './pages/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import CrewListPage from './pages/CrewListPage';
+import CrewFormPage from './pages/CrewFormPage';
+import CrewDetailPage from './pages/CrewDetailPage';
 import ShipListPage from './pages/ShipListPage';
+import ShipFormPage from './pages/ShipFormPage';
+import ShipDetailPage from './pages/ShipDetailPage';
 import CertificateListPage from './pages/CertificateListPage';
+import CertificateFormPage from './pages/CertificateFormPage';
+import CertificateDetailPage from './pages/CertificateDetailPage';
 import LeaveListPage from './pages/LeaveListPage';
+import LeaveFormPage from './pages/LeaveFormPage';
+import LeaveDetailPage from './pages/LeaveDetailPage';
 import authService from './services/authService';
 import 'antd/dist/reset.css';
 import './App.css';
@@ -49,13 +57,22 @@ const App: React.FC = () => {
           >
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="crew/list" element={<CrewListPage />} />
-            <Route path="crew/add" element={<div>添加船员页面</div>} />
+            <Route path="crew/add" element={<CrewFormPage />} />
+            <Route path="crew/edit/:id" element={<CrewFormPage />} />
+            <Route path="crew/detail/:id" element={<CrewDetailPage />} />
             <Route path="ships/list" element={<ShipListPage />} />
-            <Route path="ships/add" element={<div>添加船舶页面</div>} />
+            <Route path="ships/add" element={<ShipFormPage />} />
+            <Route path="ships/edit/:id" element={<ShipFormPage />} />
+            <Route path="ships/detail/:id" element={<ShipDetailPage />} />
             <Route path="certificates/list" element={<CertificateListPage />} />
+            <Route path="certificates/add" element={<CertificateFormPage />} />
+            <Route path="certificates/edit/:id" element={<CertificateFormPage />} />
+            <Route path="certificates/detail/:id" element={<CertificateDetailPage />} />
             <Route path="certificates/expiring" element={<div>到期证书页面</div>} />
             <Route path="leave/list" element={<LeaveListPage />} />
-            <Route path="leave/apply" element={<div>申请请假页面</div>} />
+            <Route path="leave/apply" element={<LeaveFormPage />} />
+            <Route path="leave/edit/:id" element={<LeaveFormPage />} />
+            <Route path="leave/detail/:id" element={<LeaveDetailPage />} />
             <Route path="reports/crew" element={<div>船员报表页面</div>} />
             <Route path="reports/ship" element={<div>船舶报表页面</div>} />
             <Route index element={<Navigate to="/dashboard" replace />} />
