@@ -116,7 +116,7 @@ const LoginPage: React.FC = () => {
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <p style={{ color: '#666', fontSize: '12px' }}>
-            测试账号: admin / password
+            测试账号: admin / admin
           </p>
         </div>
       </Card>

@@ -60,11 +60,56 @@ const CrewFormPage: React.FC = () => {
       const response = await crewService.getCrewById(Number(id));
       if (response && response.data) {
         const crew = response.data;
-        form.setFieldsValue({
+        
+        // 将中文值转换为前端的英文值
+        const genderMap: { [key: string]: string } = {
+          '男': 'male',
+          '女': 'female'
+        };
+        
+        const maritalStatusMap: { [key: string]: string } = {
+          '未婚': 'single',
+          '已婚': 'married',
+          '离异': 'divorced',
+          '丧偶': 'widowed'
+        };
+        
+        const educationMap: { [key: string]: string } = {
+          '小学': 'primary',
+          '初中': 'junior',
+          '高中': 'senior',
+          '中专': 'vocational',
+          '大专': 'college',
+          '本科': 'bachelor',
+          '硕士': 'master',
+          '博士': 'doctor'
+        };
+        
+        const departmentMap: { [key: string]: string } = {
+          '甲板部': 'deck',
+          '机舱部': 'engine',
+          '餐饮部': 'catering',
+          '综合部': 'general'
+        };
+
+        const statusMap: { [key: string]: string } = {
+          'active': 'active',
+          'inactive': 'inactive',
+          'on_leave': 'on_leave'
+        };
+        
+        const formData = {
           ...crew,
+          gender: genderMap[crew.gender] || crew.gender,
+          marital_status: maritalStatusMap[crew.marital_status] || crew.marital_status,
+          education: educationMap[crew.education] || crew.education,
+          department: departmentMap[crew.department] || crew.department,
+          status: statusMap[crew.status] || crew.status,
           birth_date: crew.birth_date ? dayjs(crew.birth_date) : null,
           join_date: crew.join_date ? dayjs(crew.join_date) : null,
-        });
+        };
+        
+        form.setFieldsValue(formData);
       }
     } catch (error) {
       message.error('获取船员信息失败');
@@ -77,8 +122,50 @@ const CrewFormPage: React.FC = () => {
   const handleSubmit = async (values: any) => {
     setSubmitLoading(true);
     try {
+      // 数据转换映射
+      const genderMap: { [key: string]: string } = {
+        'male': '男',
+        'female': '女'
+      };
+      
+      const maritalStatusMap: { [key: string]: string } = {
+        'single': '未婚',
+        'married': '已婚',
+        'divorced': '离异',
+        'widowed': '丧偶'
+      };
+      
+      const educationMap: { [key: string]: string } = {
+        'primary': '小学',
+        'junior': '初中',
+        'senior': '高中',
+        'vocational': '中专',
+        'college': '大专',
+        'bachelor': '本科',
+        'master': '硕士',
+        'doctor': '博士'
+      };
+      
+      const departmentMap: { [key: string]: string } = {
+        'deck': '甲板部',
+        'engine': '机舱部',
+        'catering': '餐饮部',
+        'general': '综合部'
+      };
+
+      const statusMap: { [key: string]: string } = {
+        'active': 'active',
+        'inactive': 'inactive',
+        'on_leave': 'on_leave'
+      };
+
       const formData = {
         ...values,
+        gender: genderMap[values.gender] || values.gender,
+        marital_status: maritalStatusMap[values.marital_status] || values.marital_status,
+        education: educationMap[values.education] || values.education,
+        department: departmentMap[values.department] || values.department,
+        status: statusMap[values.status] || values.status,
         birth_date: values.birth_date ? values.birth_date.format('YYYY-MM-DD') : null,
         join_date: values.join_date ? values.join_date.format('YYYY-MM-DD') : null,
       };
@@ -290,7 +377,8 @@ const CrewFormPage: React.FC = () => {
                   <Option value="primary">小学</Option>
                   <Option value="junior">初中</Option>
                   <Option value="senior">高中</Option>
-                  <Option value="college">专科</Option>
+                  <Option value="vocational">中专</Option>
+                  <Option value="college">大专</Option>
                   <Option value="bachelor">本科</Option>
                   <Option value="master">硕士</Option>
                   <Option value="doctor">博士</Option>

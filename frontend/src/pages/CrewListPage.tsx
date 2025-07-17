@@ -244,7 +244,7 @@ const CrewListPage: React.FC = () => {
       dataIndex: 'gender',
       key: 'gender',
       width: 80,
-      render: (gender: string) => gender === 'male' ? '男' : '女',
+      render: (gender: string) => gender || '-',
     },
     {
       title: '年龄',

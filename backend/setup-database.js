@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { pool } = require('./src/config/database.pool');
+const { pool } = require('./dist/config/database.pool');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,7 +9,7 @@ async function runMigrations() {
     console.log('🚀 Starting database migrations...');
     
     // 读取建表SQL
-    const schemaPath = path.join(__dirname, 'database/schemas/create_tables.sql');
+    const schemaPath = path.join(__dirname, '../database/schemas/create_tables.sql');
     const createTableSQL = fs.readFileSync(schemaPath, 'utf8');
     
     // 分割SQL语句
@@ -46,13 +46,14 @@ async function seedDatabase(connection) {
     console.log('🌱 Starting database seeding...');
     
     // 读取种子数据
-    const seedPath = path.join(__dirname, 'database/seeds/001_initial_data.sql');
-    if (!fs.existsSync(seedPath)) {
+    const seedsPath = path.join(__dirname, '../database/seeds');
+    const seedFile = path.join(seedsPath, '001_initial_data.sql');
+    if (!fs.existsSync(seedFile)) {
       console.log('⚠️  No seed file found, skipping seeding');
       return;
     }
     
-    const seedSQL = fs.readFileSync(seedPath, 'utf8');
+    const seedSQL = fs.readFileSync(seedFile, 'utf8');
     
     // 分割SQL语句
     const statements = seedSQL

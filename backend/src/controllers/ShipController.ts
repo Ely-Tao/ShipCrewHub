@@ -234,7 +234,7 @@ export class ShipController {
 
         // 构建更新SQL
         const allowedFields = [
-          'name', 'ship_number', 'type', 'tonnage', 'build_year',
+          'name', 'ship_number', 'ship_type', 'capacity', 'build_year',
           'flag_country', 'classification_society', 'imo_number',
           'call_sign', 'max_crew', 'status'
         ];

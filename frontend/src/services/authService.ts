@@ -11,8 +11,10 @@ class AuthService {
     
     if (response.success && response.data) {
       // 存储token和用户信息
-      localStorage.setItem(this.TOKEN_KEY, response.data.token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(response.data.user));
+      // 后端返回的数据结构：{ message, token, user }
+      const loginData = response.data as any;
+      localStorage.setItem(this.TOKEN_KEY, loginData.token);
+      localStorage.setItem(this.USER_KEY, JSON.stringify(loginData.user));
       return response;
     }
     

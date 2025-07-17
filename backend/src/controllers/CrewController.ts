@@ -315,6 +315,15 @@ export class CrewController {
           'general': '甲板部'    // 将综合部映射到甲板部
         };
 
+        const statusMap: { [key: string]: string } = {
+          'active': 'active',
+          'inactive': 'inactive', 
+          'on_leave': 'on_leave',
+          'active_zh': 'active',    // 支持中文输入
+          'inactive_zh': 'inactive',
+          'on_leave_zh': 'on_leave'
+        };
+
         // 转换更新数据
         const convertedUpdateData = { ...updateData };
         if (updateData.gender) {
@@ -329,11 +338,12 @@ export class CrewController {
         if (updateData.department) {
           convertedUpdateData.department = departmentMap[updateData.department] || updateData.department;
         }
+        if (updateData.status) {
+          convertedUpdateData.status = statusMap[updateData.status] || updateData.status;
+        }
         if (updateData.join_date && typeof updateData.join_date === 'string') {
           convertedUpdateData.join_date = new Date(updateData.join_date);
         }
-
-        console.log('Updating crew with converted data:', JSON.stringify(convertedUpdateData, null, 2));
 
         // 构建更新SQL
         const allowedFields = [
