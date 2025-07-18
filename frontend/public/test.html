@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>证书管理测试</title>
+  </head>
+  <body>
+    <h1>证书管理测试</h1>
+    <button onclick="setToken()">设置测试Token</button>
+    <button onclick="testAPI()">测试API</button>
+    <button onclick="goToCrewDetail()">前往船员详情页</button>
+    <div id="output"></div>
+
+    <script>
+      function setToken() {
+        const token =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc1Mjg0NDQwOSwiZXhwIjoxNzUyOTMwODA5fQ.mTyTC0FubIEcocGv57jrFkR-lMEMAxTecHcXtE1IdSg";
+        const user = {
+          id: 1,
+          username: "admin",
+          email: "admin@shipcrewdb.com",
+          role: "admin",
+          status: "active",
+        };
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        document.getElementById("output").innerHTML =
+          "<p>Token设置成功！(最新有效token - 2025-07-18 21:13)</p>";
+      }
+
+      async function testAPI() {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch(
+            "http://localhost:3000/api/v1/certificates/crew/2",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const data = await response.json();
+          document.getElementById("output").innerHTML =
+            "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+        } catch (error) {
+          document.getElementById("output").innerHTML =
+            "<p>错误: " + error.message + "</p>";
+        }
+      }
+
+      function goToCrewDetail() {
+        window.location.href = "/crew/detail/2";
+      }
+    </script>
+  </body>
+</html>
