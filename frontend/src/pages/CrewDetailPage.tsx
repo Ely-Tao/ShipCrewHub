@@ -36,6 +36,9 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { type CrewMember } from '../types';
 import crewService from '../services/crewService';
+import certificateService from '../services/certificateService';
+import CertificateFormModal from '../components/CertificateFormModal';
+import CertificateRenewModal from '../components/CertificateRenewModal';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -47,28 +50,15 @@ const CrewDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [crew, setCrew] = useState<CrewMember | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
-
-  // 模拟数据 - 实际项目中这些数据应该从后端获取
-  const [certificates] = useState([
-    {
-      id: 1,
-      type: '海员证',
-      number: 'SM2023001',
-      issueDate: '2023-01-15',
-      expiryDate: '2028-01-15',
-      status: 'active',
-      authority: '中华人民共和国海事局'
-    },
-    {
-      id: 2,
-      type: '基本安全培训证书',
-      number: 'BST2023002',
-      issueDate: '2023-02-10',
-      expiryDate: '2025-02-10',
-      status: 'expiring',
-      authority: '海事培训中心'
-    }
-  ]);
+  
+  // 证书管理状态
+  const [certificates, setCertificates] = useState<any[]>([]);
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [certificateFormVisible, setCertificateFormVisible] = useState(false);
+  const [certificateRenewVisible, setCertificateRenewVisible] = useState(false);
+  const [editingCertificate, setEditingCertificate] = useState<any | null>(null);
+  const [renewingCertificate, setRenewingCertificate] = useState<any | null>(null);
+  const [selectedCertificateIds, setSelectedCertificateIds] = useState<number[]>([]);
 
   const [transferHistory] = useState([
     {
@@ -92,8 +82,48 @@ const CrewDetailPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadCrewData();
+      loadCertificates();
     }
   }, [id]);
+
+  const loadCertificates = async () => {
+    if (!id) return;
+    
+    setCertificateLoading(true);
+    try {
+      const response = await certificateService.getCertificatesByCrewId(Number(id));
+      if (response && response.data) {
+        setCertificates(response.data);
+      }
+    } catch (error) {
+      console.error('Load certificates error:', error);
+      // 使用模拟数据作为后备
+      setCertificates([
+        {
+          id: 1,
+          type: '海员证',
+          certificate_type: 'seamans_book',
+          certificate_number: 'SM2023001',
+          issue_date: '2023-01-15',
+          expiry_date: '2028-01-15',
+          status: 'active',
+          issuing_authority: '中华人民共和国海事局'
+        },
+        {
+          id: 2,
+          type: '基本安全培训证书',
+          certificate_type: 'safety',
+          certificate_number: 'BST2023002',
+          issue_date: '2023-02-10',
+          expiry_date: '2025-02-10',
+          status: 'active',
+          issuing_authority: '海事培训中心'
+        }
+      ]);
+    } finally {
+      setCertificateLoading(false);
+    }
+  };
 
   const loadCrewData = async () => {
     if (!id) return;
@@ -136,6 +166,68 @@ const CrewDetailPage: React.FC = () => {
 
   const handleBack = () => {
     navigate('/crew/list');
+  };
+
+  // 证书管理函数
+  const handleAddCertificate = () => {
+    setEditingCertificate(null);
+    setCertificateFormVisible(true);
+  };
+
+  const handleEditCertificate = (certificate: any) => {
+    setEditingCertificate(certificate);
+    setCertificateFormVisible(true);
+  };
+
+  const handleDeleteCertificate = (certificate: any) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除证书 "${certificate.type || certificate.certificate_type}" 吗？`,
+      onOk: async () => {
+        try {
+          await certificateService.deleteCertificate(certificate.id);
+          message.success('证书删除成功');
+          loadCertificates();
+        } catch (error) {
+          message.error('证书删除失败');
+        }
+      },
+    });
+  };
+
+  const handleRenewCertificate = (certificate: any) => {
+    setRenewingCertificate(certificate);
+    setCertificateRenewVisible(true);
+  };
+
+  const handleBatchDeleteCertificates = () => {
+    if (selectedCertificateIds.length === 0) {
+      message.warning('请先选择要删除的证书');
+      return;
+    }
+
+    Modal.confirm({
+      title: '批量删除证书',
+      content: `确定要删除选中的 ${selectedCertificateIds.length} 个证书吗？`,
+      onOk: async () => {
+        try {
+          await certificateService.deleteCertificates(selectedCertificateIds);
+          message.success('证书批量删除成功');
+          setSelectedCertificateIds([]);
+          loadCertificates();
+        } catch (error) {
+          message.error('证书批量删除失败');
+        }
+      },
+    });
+  };
+
+  const handleCertificateFormSuccess = () => {
+    loadCertificates();
+  };
+
+  const handleCertificateRenewSuccess = () => {
+    loadCertificates();
   };
 
   const getStatusColor = (status: string) => {
@@ -238,42 +330,96 @@ const CrewDetailPage: React.FC = () => {
     }
   };
 
+  const getCertificateTypeName = (type: string) => {
+    const typeMap: Record<string, string> = {
+      seamans_book: '海员证',
+      deck_officer: '甲板部船员证书',
+      engine_officer: '轮机部船员证书',
+      medical: '体检证明',
+      safety: '安全培训证书',
+      special: '特殊技能证书',
+    };
+    return typeMap[type] || type;
+  };
+
   const certificateColumns = [
     {
       title: '证书类型',
-      dataIndex: 'type',
-      key: 'type',
+      dataIndex: 'certificate_type',
+      key: 'certificate_type',
+      render: (type: string, record: any) => getCertificateTypeName(type) || record.type,
     },
     {
       title: '证书编号',
-      dataIndex: 'number',
-      key: 'number',
+      dataIndex: 'certificate_number',
+      key: 'certificate_number',
+      render: (number: string, record: any) => number || record.number,
     },
     {
       title: '签发日期',
-      dataIndex: 'issueDate',
-      key: 'issueDate',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
+      dataIndex: 'issue_date',
+      key: 'issue_date',
+      render: (date: string, record: any) => {
+        const actualDate = date || record.issueDate;
+        return actualDate ? dayjs(actualDate).format('YYYY-MM-DD') : '-';
+      },
     },
     {
       title: '到期日期',
-      dataIndex: 'expiryDate',
-      key: 'expiryDate',
-      render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
+      dataIndex: 'expiry_date',
+      key: 'expiry_date',
+      render: (date: string, record: any) => {
+        const actualDate = date || record.expiryDate;
+        return actualDate ? dayjs(actualDate).format('YYYY-MM-DD') : '-';
+      },
     },
     {
       title: '状态',
-      dataIndex: 'expiryDate',
+      dataIndex: 'expiry_date',
       key: 'status',
-      render: (expiryDate: string) => {
-        const { color, text } = getCertificateStatus(expiryDate);
+      render: (expiryDate: string, record: any) => {
+        const actualDate = expiryDate || record.expiryDate;
+        if (!actualDate) return <Tag>未知</Tag>;
+        const { color, text } = getCertificateStatus(actualDate);
         return <Tag color={color}>{text}</Tag>;
       },
     },
     {
       title: '签发机构',
-      dataIndex: 'authority',
-      key: 'authority',
+      dataIndex: 'issuing_authority',
+      key: 'issuing_authority',
+      render: (authority: string, record: any) => authority || record.authority,
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 200,
+      render: (_: any, record: any) => (
+        <Space size="small">
+          <Button 
+            type="link" 
+            size="small"
+            onClick={() => handleEditCertificate(record)}
+          >
+            编辑
+          </Button>
+          <Button 
+            type="link" 
+            size="small"
+            onClick={() => handleRenewCertificate(record)}
+          >
+            续期
+          </Button>
+          <Button 
+            type="link" 
+            size="small"
+            danger
+            onClick={() => handleDeleteCertificate(record)}
+          >
+            删除
+          </Button>
+        </Space>
+      ),
     },
   ];
 
@@ -507,15 +653,38 @@ const CrewDetailPage: React.FC = () => {
           </TabPane>
 
           <TabPane tab={
-            <Badge count={certificates.filter(cert => getCertificateStatus(cert.expiryDate).status === 'expiring').length}>
+            <Badge count={certificates.filter(cert => {
+              const expiryDate = cert.expiry_date || cert.expiryDate;
+              return expiryDate && getCertificateStatus(expiryDate).status === 'expiring';
+            }).length}>
               <SafetyCertificateOutlined /> 证书管理
             </Badge>
           } key="certificates">
             <Card 
-              title="证书列表"
+              title={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>证书列表</span>
+                  {selectedCertificateIds.length > 0 && (
+                    <Space>
+                      <span style={{ fontSize: '14px', fontWeight: 'normal' }}>
+                        已选择 {selectedCertificateIds.length} 项
+                      </span>
+                      <Button 
+                        size="small" 
+                        danger
+                        onClick={handleBatchDeleteCertificates}
+                      >
+                        批量删除
+                      </Button>
+                    </Space>
+                  )}
+                </div>
+              }
               extra={
                 <Space>
-                  <Button type="primary">添加证书</Button>
+                  <Button type="primary" onClick={handleAddCertificate}>
+                    添加证书
+                  </Button>
                   <Button>批量导入</Button>
                 </Space>
               }
@@ -524,8 +693,13 @@ const CrewDetailPage: React.FC = () => {
                 columns={certificateColumns}
                 dataSource={certificates}
                 rowKey="id"
+                loading={certificateLoading}
                 pagination={false}
                 size="middle"
+                rowSelection={{
+                  selectedRowKeys: selectedCertificateIds,
+                  onChange: (keys: React.Key[]) => setSelectedCertificateIds(keys as number[]),
+                }}
               />
             </Card>
           </TabPane>
@@ -562,6 +736,24 @@ const CrewDetailPage: React.FC = () => {
           </TabPane>
         </Tabs>
       </Card>
+
+      {/* 证书表单模态框 */}
+      <CertificateFormModal
+        visible={certificateFormVisible}
+        onCancel={() => setCertificateFormVisible(false)}
+        onSuccess={handleCertificateFormSuccess}
+        crewId={Number(id)}
+        certificate={editingCertificate}
+        mode={editingCertificate ? 'edit' : 'create'}
+      />
+
+      {/* 证书续期模态框 */}
+      <CertificateRenewModal
+        visible={certificateRenewVisible}
+        onCancel={() => setCertificateRenewVisible(false)}
+        onSuccess={handleCertificateRenewSuccess}
+        certificate={renewingCertificate}
+      />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import userRoutes from './userRoutes';
 import crewRoutes from './crewRoutes';
 import shipRoutes from './shipRoutes';
+import certificateRoutes from './certificateRoutes';
 import testAuthRoutes from './testAuthRoutes';
 
 const router = Router();
@@ -13,6 +14,7 @@ const API_VERSION = '/api/v1';
 router.use(`${API_VERSION}/users`, userRoutes);
 router.use(`${API_VERSION}/crew`, crewRoutes);
 router.use(`${API_VERSION}/ships`, shipRoutes);
+router.use(`${API_VERSION}/certificates`, certificateRoutes);
 router.use(`${API_VERSION}/auth`, testAuthRoutes); // 临时认证路由
 
 // 健康检查
