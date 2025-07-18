@@ -32,10 +32,11 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "mysql2": "^3.14.2",
     "redis": "^5.6.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
