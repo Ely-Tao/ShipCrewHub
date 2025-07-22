@@ -27,10 +27,27 @@
 
 ### 1.3 添加数据库
 
-1. 在 Railway 项目中点击 "Add Service"
-2. 选择 MySQL 或 PostgreSQL
-3. Railway 会自动生成 DATABASE_URL
-4. 在后端环境变量中会自动添加数据库连接
+在 Railway 中添加数据库有两种方式：
+
+**方式一：在项目创建时添加**
+
+1. 部署完后端项目后，在项目主页面
+2. 点击右上角的 **"+ New"** 按钮
+3. 选择 **"Database"**
+4. 选择 **"Add MySQL"** 或 **"Add PostgreSQL"**
+5. Railway 会自动创建数据库并生成连接信息
+
+**方式二：通过 Add Service（如果可见）**
+
+1. 在项目页面查找 **"Add Service"** 或 **"+"** 按钮
+2. 选择数据库类型
+3. 确认创建
+
+**重要提示：**
+
+- Railway 会自动将数据库连接信息添加到环境变量中
+- 通常会生成 `DATABASE_URL` 或 `MYSQL_URL` 变量
+- 你的应用会自动获得这些连接信息
 
 ### 1.4 配置构建命令
 
