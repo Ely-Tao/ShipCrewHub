@@ -5,6 +5,7 @@ import shipRoutes from "./shipRoutes";
 import certificateRoutes from "./certificateRoutes";
 import testAuthRoutes from "./testAuthRoutes";
 import importRoutes from "./importRoutes";
+import statsRoutes from "./statsRoutes";
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use(`${API_VERSION}/ships`, shipRoutes);
 router.use(`${API_VERSION}/certificates`, certificateRoutes);
 router.use(`${API_VERSION}/auth`, testAuthRoutes); // 临时认证路由
 router.use(`${API_VERSION}/import`, importRoutes); // 数据导入路由
+router.use(`${API_VERSION}/stats`, statsRoutes); // 系统统计路由
 
 // 健康检查
 router.get("/health", (req, res) => {

@@ -1,69 +1,78 @@
-import { Request, Response } from 'express';
-import { pool } from '../config/database.pool';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response } from "express";
+import { pool } from "../config/database.pool";
+import { AuthRequest } from "../middleware/auth";
 
 export class ShipController {
   // 获取船舶列表
   async getShipList(req: Request, res: Response) {
     try {
-      const { 
-        page = 1, 
-        limit = 10, 
-        name, 
-        ship_number, 
-        type, 
-        status 
+      const {
+        page = 1,
+        limit = 10,
+        name,
+        ship_number,
+        type,
+        status,
       } = req.query;
-      
+
       // 确保 page 和 limit 是正确的数字
       const pageNum = Math.max(1, parseInt(page as string) || 1);
-      const limitNum = Math.max(1, Math.min(100, parseInt(limit as string) || 10));
+      const limitNum = Math.max(
+        1,
+        Math.min(100, parseInt(limit as string) || 10),
+      );
       const offsetNum = (pageNum - 1) * limitNum;
 
-      let whereClause = '1=1';
+      let whereClause = "1=1";
       const filterParams: any[] = [];
 
       if (name) {
-        whereClause += ' AND name LIKE ?';
+        whereClause += " AND name LIKE ?";
         filterParams.push(`%${name}%`);
       }
 
       if (ship_number) {
-        whereClause += ' AND ship_number LIKE ?';
+        whereClause += " AND ship_number LIKE ?";
         filterParams.push(`%${ship_number}%`);
       }
 
       if (type) {
-        whereClause += ' AND ship_type = ?';
+        whereClause += " AND ship_type = ?";
         filterParams.push(type);
       }
 
       if (status) {
-        whereClause += ' AND status = ?';
+        whereClause += " AND status = ?";
         filterParams.push(status);
       }
 
       const connection = await pool.getConnection();
       try {
         // 暂时使用字符串插值来避免参数绑定问题
-        const listQuery = `SELECT 
+        const listQuery = `SELECT
             s.*,
             COUNT(ci.id) as crew_count
            FROM ship_info s
            LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
            WHERE ${whereClause}
            GROUP BY s.id
-           ORDER BY s.created_at DESC 
+           ORDER BY s.created_at DESC
            LIMIT ${limitNum} OFFSET ${offsetNum}`;
-        
-        console.log('Executing query:', listQuery);
-        console.log('With params:', filterParams);
-        
-        const [ships] = await connection.execute<any[]>(listQuery, filterParams);
+
+        console.log("Executing query:", listQuery);
+        console.log("With params:", filterParams);
+
+        const [ships] = await connection.execute<any[]>(
+          listQuery,
+          filterParams,
+        );
 
         // 获取总数 - 只传递过滤参数
         const countQuery = `SELECT COUNT(*) as total FROM ship_info WHERE ${whereClause}`;
-        const [countResult] = await connection.execute<any[]>(countQuery, filterParams);
+        const [countResult] = await connection.execute<any[]>(
+          countQuery,
+          filterParams,
+        );
 
         const total = countResult[0].total;
 
@@ -73,15 +82,15 @@ export class ShipController {
             current: pageNum,
             pageSize: limitNum,
             total,
-            pages: Math.ceil(total / limitNum)
-          }
+            pages: Math.ceil(total / limitNum),
+          },
         });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Get ship list error:', error);
-      res.status(500).json({ error: 'Failed to get ship list' });
+      console.error("Get ship list error:", error);
+      res.status(500).json({ error: "Failed to get ship list" });
     }
   }
 
@@ -94,40 +103,40 @@ export class ShipController {
       try {
         // 获取船舶基本信息
         const [ships] = await connection.execute<any[]>(
-          `SELECT 
+          `SELECT
             s.*,
             COUNT(ci.id) as crew_count
            FROM ship_info s
            LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
            WHERE s.id = ?
            GROUP BY s.id`,
-          [shipId]
+          [shipId],
         );
 
         if (ships.length === 0) {
-          res.status(404).json({ error: 'Ship not found' });
+          res.status(404).json({ error: "Ship not found" });
           return;
         }
 
         // 获取船员列表
         const [crew] = await connection.execute<any[]>(
           `SELECT id, name, department, phone, join_date, status
-           FROM crew_info 
+           FROM crew_info
            WHERE ship_id = ? AND status = 'active'
            ORDER BY department, name`,
-          [shipId]
+          [shipId],
         );
 
         res.json({
           ...ships[0],
-          crew
+          crew,
         });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Get ship by ID error:', error);
-      res.status(500).json({ error: 'Failed to get ship information' });
+      console.error("Get ship by ID error:", error);
+      res.status(500).json({ error: "Failed to get ship information" });
     }
   }
 
@@ -135,10 +144,13 @@ export class ShipController {
   async createShip(req: AuthRequest, res: Response): Promise<void> {
     try {
       const shipData = req.body;
-      console.log('Creating ship with data:', JSON.stringify(shipData, null, 2));
+      console.log(
+        "Creating ship with data:",
+        JSON.stringify(shipData, null, 2),
+      );
 
       // 验证必填字段
-      const requiredFields = ['name', 'ship_number', 'ship_type'];
+      const requiredFields = ["name", "ship_number", "ship_type"];
       for (const field of requiredFields) {
         if (!shipData[field]) {
           console.log(`Missing required field: ${field}`);
@@ -151,12 +163,12 @@ export class ShipController {
       try {
         // 检查船舶编号是否已存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ship_info WHERE ship_number = ?',
-          [shipData.ship_number]
+          "SELECT id FROM ship_info WHERE ship_number = ?",
+          [shipData.ship_number],
         );
 
         if (existingShip.length > 0) {
-          res.status(409).json({ error: 'Ship number already exists' });
+          res.status(409).json({ error: "Ship number already exists" });
           return;
         }
 
@@ -166,37 +178,37 @@ export class ShipController {
           shipData.ship_number,
           shipData.ship_type,
           shipData.capacity || null,
-          shipData.status || 'active'
+          shipData.status || "active",
         ];
 
-        console.log('Insert parameters:', insertParams);
+        console.log("Insert parameters:", insertParams);
 
         // 插入船舶信息
         const [result] = await connection.execute<any>(
           `INSERT INTO ship_info (
             name, ship_number, ship_type, capacity, status, created_at
           ) VALUES (?, ?, ?, ?, ?, NOW())`,
-          insertParams
+          insertParams,
         );
 
         const shipId = result.insertId;
 
         // 获取新创建的船舶信息
         const [newShip] = await connection.execute<any[]>(
-          'SELECT * FROM ship_info WHERE id = ?',
-          [shipId]
+          "SELECT * FROM ship_info WHERE id = ?",
+          [shipId],
         );
 
         res.status(201).json({
-          message: 'Ship created successfully',
-          ship: newShip[0]
+          message: "Ship created successfully",
+          ship: newShip[0],
         });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Create ship error:', error);
-      res.status(500).json({ error: 'Failed to create ship' });
+      console.error("Create ship error:", error);
+      res.status(500).json({ error: "Failed to create ship" });
     }
   }
 
@@ -210,33 +222,41 @@ export class ShipController {
       try {
         // 检查船舶是否存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ship_info WHERE id = ?',
-          [shipId]
+          "SELECT id FROM ship_info WHERE id = ?",
+          [shipId],
         );
 
         if (existingShip.length === 0) {
-          res.status(404).json({ error: 'Ship not found' });
+          res.status(404).json({ error: "Ship not found" });
           return;
         }
 
         // 如果更新船舶编号，检查是否与其他船舶重复
         if (updateData.ship_number) {
           const [duplicateCheck] = await connection.execute<any[]>(
-            'SELECT id FROM ship_info WHERE ship_number = ? AND id != ?',
-            [updateData.ship_number, shipId]
+            "SELECT id FROM ship_info WHERE ship_number = ? AND id != ?",
+            [updateData.ship_number, shipId],
           );
 
           if (duplicateCheck.length > 0) {
-            res.status(409).json({ error: 'Ship number already exists' });
+            res.status(409).json({ error: "Ship number already exists" });
             return;
           }
         }
 
         // 构建更新SQL
         const allowedFields = [
-          'name', 'ship_number', 'ship_type', 'capacity', 'build_year',
-          'flag_country', 'classification_society', 'imo_number',
-          'call_sign', 'max_crew', 'status'
+          "name",
+          "ship_number",
+          "ship_type",
+          "capacity",
+          "build_year",
+          "flag_country",
+          "classification_society",
+          "imo_number",
+          "call_sign",
+          "max_crew",
+          "status",
         ];
 
         const updates: string[] = [];
@@ -250,35 +270,35 @@ export class ShipController {
         }
 
         if (updates.length === 0) {
-          res.status(400).json({ error: 'No fields to update' });
+          res.status(400).json({ error: "No fields to update" });
           return;
         }
 
-        updates.push('updated_at = NOW()');
+        updates.push("updated_at = NOW()");
         params.push(shipId);
 
         // 执行更新
         await connection.execute(
-          `UPDATE ship_info SET ${updates.join(', ')} WHERE id = ?`,
-          params
+          `UPDATE ship_info SET ${updates.join(", ")} WHERE id = ?`,
+          params,
         );
 
         // 获取更新后的船舶信息
         const [updatedShip] = await connection.execute<any[]>(
-          'SELECT * FROM ship_info WHERE id = ?',
-          [shipId]
+          "SELECT * FROM ship_info WHERE id = ?",
+          [shipId],
         );
 
         res.json({
-          message: 'Ship updated successfully',
-          ship: updatedShip[0]
+          message: "Ship updated successfully",
+          ship: updatedShip[0],
         });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Update ship error:', error);
-      res.status(500).json({ error: 'Failed to update ship' });
+      console.error("Update ship error:", error);
+      res.status(500).json({ error: "Failed to update ship" });
     }
   }
 
@@ -291,24 +311,25 @@ export class ShipController {
       try {
         // 检查船舶是否存在
         const [existingShip] = await connection.execute<any[]>(
-          'SELECT id FROM ship_info WHERE id = ?',
-          [shipId]
+          "SELECT id FROM ship_info WHERE id = ?",
+          [shipId],
         );
 
         if (existingShip.length === 0) {
-          res.status(404).json({ error: 'Ship not found' });
+          res.status(404).json({ error: "Ship not found" });
           return;
         }
 
         // 检查是否有船员分配到这艘船
         const [assignedCrew] = await connection.execute<any[]>(
           'SELECT COUNT(*) as count FROM crew_info WHERE ship_id = ? AND status = "active"',
-          [shipId]
+          [shipId],
         );
 
         if (assignedCrew[0].count > 0) {
-          res.status(400).json({ 
-            error: 'Cannot delete ship with active crew members. Please reassign crew first.' 
+          res.status(400).json({
+            error:
+              "Cannot delete ship with active crew members. Please reassign crew first.",
           });
           return;
         }
@@ -316,16 +337,16 @@ export class ShipController {
         // 软删除：将状态设置为inactive
         await connection.execute(
           'UPDATE ship_info SET status = "inactive", updated_at = NOW() WHERE id = ?',
-          [shipId]
+          [shipId],
         );
 
-        res.json({ message: 'Ship deleted successfully' });
+        res.json({ message: "Ship deleted successfully" });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Delete ship error:', error);
-      res.status(500).json({ error: 'Failed to delete ship' });
+      console.error("Delete ship error:", error);
+      res.status(500).json({ error: "Failed to delete ship" });
     }
   }
 
@@ -336,35 +357,42 @@ export class ShipController {
       try {
         // 获取各种统计信息
         const [totalShips] = await connection.execute<any[]>(
-          'SELECT COUNT(*) as total FROM ship_info WHERE status = "active"'
+          'SELECT COUNT(*) as total FROM ship_info WHERE status = "active"',
         );
 
-        const [shipsByType] = await connection.execute<any[]>(
-          'SELECT ship_type as type, COUNT(*) as count FROM ship_info WHERE status = "active" GROUP BY ship_type'
+        const [totalCrew] = await connection.execute<any[]>(
+          "SELECT COUNT(*) as total FROM crew_info",
         );
 
-        const [crewStats] = await connection.execute<any[]>(
-          `SELECT 
-            s.id, s.name, s.ship_number, s.capacity as max_crew,
-            COUNT(ci.id) as current_crew
-           FROM ship_info s
-           LEFT JOIN crew_info ci ON s.id = ci.ship_id AND ci.status = 'active'
-           WHERE s.status = 'active'
-           GROUP BY s.id
-           ORDER BY s.name`
+        const [totalShorePersonnel] = await connection.execute<any[]>(
+          'SELECT COUNT(*) as total FROM crew_info WHERE status = "active" AND ship_id IS NULL',
+        );
+
+        const [pendingLeaves] = await connection.execute<any[]>(
+          'SELECT COUNT(*) as total FROM leave_records WHERE status = "pending"',
+        );
+
+        const [expiringCertificates] = await connection.execute<any[]>(
+          `SELECT COUNT(*) as total FROM certificates
+           WHERE status = "active" AND expiry_date <= DATE_ADD(NOW(), INTERVAL 30 DAY)`,
         );
 
         res.json({
-          totalShips: totalShips[0].total,
-          shipsByType,
-          crewStats
+          success: true,
+          data: {
+            totalShips: totalShips[0].total,
+            totalCrew: totalCrew[0].total,
+            totalShorePersonnel: totalShorePersonnel[0].total,
+            pendingLeaves: pendingLeaves[0].total,
+            expiringCertificates: expiringCertificates[0].total,
+          },
         });
       } finally {
         connection.release();
       }
     } catch (error) {
-      console.error('Get ship stats error:', error);
-      res.status(500).json({ error: 'Failed to get ship statistics' });
+      console.error("Get ship stats error:", error);
+      res.status(500).json({ error: "Failed to get ship statistics" });
     }
   }
 }
