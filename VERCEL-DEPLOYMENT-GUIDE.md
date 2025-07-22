@@ -3,10 +3,12 @@
 ## 📋 准备工作
 
 ### 1. 注册 Vercel 账号
+
 - 访问：https://vercel.com
 - 使用 GitHub 账号登录
 
 ### 2. 导入项目
+
 1. 点击 **"New Project"**
 2. 选择 **"Import Git Repository"**
 3. 选择你的 `ShipCrewHub` 仓库
@@ -15,6 +17,7 @@
 ### 3. 配置项目设置
 
 **重要配置项：**
+
 - **Framework Preset**: 选择 `Vite`
 - **Root Directory**: 设置为 `frontend`
 - **Build Command**: `npm run build`
@@ -26,6 +29,7 @@
 在 Vercel 项目设置中添加环境变量：
 
 **使用你的 Railway 后端 URL：**
+
 ```
 VITE_API_URL=https://shipcrewhub-production.up.railway.app
 ```
@@ -41,15 +45,18 @@ VITE_API_URL=https://shipcrewhub-production.up.railway.app
 ## 🔍 如何找到 Railway 后端 URL
 
 ### 方法 A：在 Railway 服务页面查找
+
 1. 进入 Railway 项目
 2. 点击后端服务
 3. 查看页面顶部是否有 URL 或 "View Live" 按钮
 
 ### 方法 B：生成域名
+
 1. 在 Railway 服务页面查找 **"Generate Domain"** 按钮
 2. 或者在 **"Settings"** → **"Domain"** 中添加
 
 ### 方法 C：检查 Networking 设置
+
 1. 在服务页面查找 **"Networking"** 标签
 2. 查看是否有公网访问配置
 
@@ -62,6 +69,7 @@ VITE_API_URL=https://shipcrewhub-production.up.railway.app
 ## ✅ 测试连接
 
 部署完成后测试：
+
 - 前端页面能正常加载
 - 前端能成功调用后端 API
 - 用户注册/登录功能正常
