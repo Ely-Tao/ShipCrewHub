@@ -10,9 +10,9 @@ const parseDbUrl = (url: string) => {
     console.log("🔍 正在解析数据库 URL...");
     console.log("📝 URL 长度:", url.length);
     console.log("🔗 URL 协议:", url.substring(0, 10));
-    
+
     const dbUrl = new URL(url);
-    
+
     const result = {
       host: dbUrl.hostname,
       port: parseInt(dbUrl.port) || 3306,
@@ -20,14 +20,14 @@ const parseDbUrl = (url: string) => {
       password: decodeURIComponent(dbUrl.password),
       database: dbUrl.pathname.slice(1), // 移除开头的 '/'
     };
-    
+
     console.log("✅ URL 解析结果:");
     console.log("  - Host:", result.host);
     console.log("  - Port:", result.port);
     console.log("  - User:", result.user);
     console.log("  - Database:", result.database);
     console.log("  - Password length:", result.password.length);
-    
+
     return result;
   } catch (error) {
     console.error("❌ 数据库 URL 解析失败:", error);
@@ -68,7 +68,10 @@ export const mysqlConfig = (() => {
         reconnect: true,
         charset: "utf8mb4",
         // Railway 特定配置
-        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+        ssl:
+          process.env.NODE_ENV === "production"
+            ? { rejectUnauthorized: false }
+            : undefined,
         connectTimeout: 60000,
         // 处理 Railway 内部网络
         typeCast: true,
